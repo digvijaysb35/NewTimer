@@ -7,6 +7,5 @@ import android.content.Intent
 class StopReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         context.stopService(Intent(context, TimerService::class.java))
-        TimerService.stopAlarm()
     }
 }
