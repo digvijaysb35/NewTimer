@@ -67,12 +67,13 @@ class TimerService : Service() {
         ringStopAt = System.currentTimeMillis() + duration * 1000L
         updateNotification("Ringing — press a volume key to stop")
 
-        val customUri = prefs.getString("ring_uri", null)?.let(Uri::parse)
+        val selectedUri = prefs.getString("ring_uri", null)?.let(Uri::parse)
+        val isSystemRing = selectedUri == null || prefs.getBoolean("ring_is_system", false)
         val gain = prefs.getInt("ring_gain", 100).coerceIn(0, 100) / 100f
-        if (customUri != null) {
-            playCustomSound(customUri, gain)
-        } else {
-            playSystemAlarm(gain)
+        if (isSystemRing) {
+            playSystemAlarm(selectedUri, gain)
+        } else if (selectedUri != null) {
+            playCustomSound(selectedUri, gain)
         }
 
         handler.postDelayed({
@@ -84,9 +85,10 @@ class TimerService : Service() {
         }, duration * 1000L)
     }
 
-    private fun playSystemAlarm(gain: Float) {
+    private fun playSystemAlarm(selectedUri: Uri?, gain: Float) {
         try {
-            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val uri = selectedUri
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             if (uri == null) {
