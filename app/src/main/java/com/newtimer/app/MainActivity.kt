@@ -54,6 +54,16 @@ class MainActivity : Activity() {
             presetRow.addView(button(name) { setTime(value) }, LinearLayout.LayoutParams(0, 52, 1f))
         }
         root.addView(presetRow)
+        root.addView(button("SAVE CURRENT TIME AS PRESET") { savePreset() }, match())
+        root.addView(label("YOUR SAVED PRESETS"))
+        val saved = prefs.getStringSet("presets", emptySet())?.toList().orEmpty()
+        saved.forEach { item ->
+            val parts = item.split("|", limit = 2)
+            if (parts.size == 2) {
+                val presetSeconds = parts[1].toLongOrNull() ?: 0L
+                if (presetSeconds > 0) root.addView(button(parts[0]) { setTime(presetSeconds) }, match())
+            }
+        }
         root.addView(label("RING VOLUME (APP LEVEL)"))
         val volume = SeekBar(this).apply {
             max = 100; progress = prefs.getInt("ring_gain", 100)
@@ -75,13 +85,16 @@ class MainActivity : Activity() {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { prefs.edit().putInt("ring_duration", durationValues[position]).apply() }
         }
         root.addView(spinner)
-        root.addView(button("CHOOSE CUSTOM RING") {
-            val i = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose timer sound")
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+        root.addView(button("USE SYSTEM ALARM SOUND") {
+            prefs.edit().remove("ring_uri").apply()
+            status.text = "System alarm sound selected"
+        }, match())
+        root.addView(button("CHOOSE CUSTOM SOUND FILE") {
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "audio/*"
             }
-            @Suppress("DEPRECATION") startActivityForResult(i, 22)
+            @Suppress("DEPRECATION") startActivityForResult(i, 23)
         }, match())
         root.addView(button("ENABLE VOLUME-KEY STOP (SCREEN ON / DEVICE SUPPORT DEPENDENT)") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -105,6 +118,25 @@ class MainActivity : Activity() {
     private fun weight() = LinearLayout.LayoutParams(0, 76, 1f).apply { setMargins(4, 4, 4, 12) }
     private fun match() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54).apply { setMargins(0, 5, 0, 5) }
 
+    private fun savePreset() {
+        val total = (hours.text.toString().toLongOrNull() ?: 0) * 3600 +
+            (minutes.text.toString().toLongOrNull() ?: 0) * 60 + (seconds.text.toString().toLongOrNull() ?: 0)
+        if (total <= 0) { status.text = "Set a time before saving a preset"; return }
+        val nameInput = EditText(this).apply { hint = "Preset name" }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Save quick preset")
+            .setView(nameInput)
+            .setPositiveButton("Save") { _, _ ->
+                val name = nameInput.text.toString().trim().ifEmpty { "${total / 60} min" }
+                val set = prefs.getStringSet("presets", emptySet())?.toMutableSet() ?: mutableSetOf()
+                set.add("$name|$total")
+                prefs.edit().putStringSet("presets", set).apply()
+                buildUi()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun setTime(total: Long) {
         hours.setText((total / 3600).toString()); minutes.setText(((total % 3600) / 60).toString()); seconds.setText((total % 60).toString())
     }
@@ -123,10 +155,13 @@ class MainActivity : Activity() {
     @Deprecated("Deprecated in Android")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 22 && resultCode == RESULT_OK) {
-            val uri = data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            prefs.edit().putString("ring_uri", uri?.toString()).apply()
-            status.text = if (uri == null) "System alarm sound selected" else "Custom ring selected"
+        if (requestCode == 23 && resultCode == RESULT_OK) {
+            val uri = data?.data
+            if (uri != null) {
+                try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+                prefs.edit().putString("ring_uri", uri.toString()).apply()
+                status.text = "Custom sound selected"
+            }
         }
     }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
