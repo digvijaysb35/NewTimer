@@ -132,6 +132,7 @@ class MainActivity : Activity() {
                 set.add("$name|$total")
                 prefs.edit().putStringSet("presets", set).apply()
                 buildUi()
+                setTime(total)
             }
             .setNegativeButton("Cancel", null)
             .show()
