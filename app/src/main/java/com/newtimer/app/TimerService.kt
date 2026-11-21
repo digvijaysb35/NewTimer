@@ -61,6 +61,7 @@ class TimerService : Service() {
     }
 
     private fun startRinging() {
+        getSharedPreferences("timer", MODE_PRIVATE).edit().putBoolean("is_ringing", true).apply()
         handler.removeCallbacks(tick)
         val prefs = getSharedPreferences("timer", MODE_PRIVATE)
         val duration = prefs.getInt("ring_duration", 60).coerceIn(5, 600)
@@ -195,6 +196,7 @@ class TimerService : Service() {
     }
 
     private fun stopAlarm() {
+        getSharedPreferences("timer", MODE_PRIVATE).edit().putBoolean("is_ringing", false).apply()
         handler.removeCallbacksAndMessages(null)
         try { player?.stop() } catch (_: Exception) {}
         try { player?.release() } catch (_: Exception) {}
