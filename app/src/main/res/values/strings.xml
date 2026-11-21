@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">NewTimer</string>
+    <string name="accessibility_description">Lets NewTimer stop a running countdown or alarm when you press a volume key. Android may not deliver volume-key events while the screen is off on some devices.</string>
+</resources>
