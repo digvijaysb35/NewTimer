@@ -166,18 +166,22 @@ class MainActivity : Activity() {
         root.addView(spinner, fullWidth().apply { height = dp(52) })
 
         section("RING SOUND")
-        root.addView(action("CHOOSE SYSTEM ALARM RING", panel, Color.WHITE) {
-            val picker = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose system alarm sound")
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
-                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
-                    prefs.getString("ring_uri", null)?.let(Uri::parse)
-                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+        root.addView(action("CHOOSE SYSTEM ALARM SOUND", panel, Color.WHITE) {
+            try {
+                val picker = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose alarm sound")
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                        if (prefs.getBoolean("ring_is_system", false)) prefs.getString("ring_uri", null)?.let(Uri::parse)
+                        else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                }
+                @Suppress("DEPRECATION") startActivityForResult(picker, 24)
+            } catch (_: Exception) {
+                status.text = "This phone has no system ringtone picker. Use Choose Custom Sound File instead."
             }
-            @Suppress("DEPRECATION") startActivityForResult(picker, 24)
         }, fullWidth())
         root.addView(action("USE PHONE'S DEFAULT ALARM SOUND", panel, Color.WHITE) {
             prefs.edit().remove("ring_uri").apply()
@@ -193,27 +197,34 @@ class MainActivity : Activity() {
         }, fullWidth())
 
         section("APP NOTIFICATIONS")
-        val silentSwitch = Switch(this).apply {
-            text = "Mute app notification and sound"
-            textSize = 14f
-            setTextColor(Color.WHITE)
-            isChecked = prefs.getBoolean("silent_notifications", false)
-            setPadding(0, dp(6), 0, dp(6))
-            setOnCheckedChangeListener { _, checked ->
-                prefs.edit().putBoolean("silent_notifications", checked).apply()
-                status.text = if (checked) {
-                    "Timer notification will be silent next time"
+        val isMuted = prefs.getBoolean("silent_notifications", false)
+        root.addView(action(
+            if (isMuted) "UNMUTE NOTIFICATION SOUND" else "MUTE NOTIFICATION SOUND",
+            if (isMuted) accent else panel,
+            if (isMuted) Color.BLACK else Color.WHITE
+        ) {
+            val nowMuted = !prefs.getBoolean("silent_notifications", false)
+            prefs.edit().putBoolean("silent_notifications", nowMuted).apply()
+            status.text = if (nowMuted) "Notification sound and vibration muted" else "Notification sound and vibration enabled"
+            buildUi()
+        }, fullWidth())
+        root.addView(action("OPEN NOTIFICATION SETTINGS", panel, Color.WHITE) {
+            try {
+                val intent = if (Build.VERSION.SDK_INT >= 26) {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                 } else {
-                    "Timer notification sound enabled next time"
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
                 }
+                startActivity(intent)
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
             }
-        }
-        root.addView(silentSwitch)
+        }, fullWidth())
         root.addView(TextView(this).apply {
-            text = "Android requires an ongoing notification while the timer runs. This option keeps it visible but mutes its sound and vibration."
+            text = "Android requires a visible ongoing notification while a timer runs, so NewTimer cannot remove it completely. Use MUTE NOTIFICATION SOUND to silence it, or open Notification Settings to manage app alerts."
             textSize = 12f
             setTextColor(Color.GRAY)
-            setPadding(0, 0, 0, dp(8))
+            setPadding(0, dp(4), 0, dp(8))
         })
 
         section("VOLUME-KEY STOP")
@@ -354,13 +365,18 @@ class MainActivity : Activity() {
             }
         }
         if (requestCode == 24 && resultCode == RESULT_OK) {
-            @Suppress("DEPRECATION")
-            val uri: Uri? = data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val uri: Uri? = if (Build.VERSION.SDK_INT >= 33) {
+                data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            }
             if (uri != null) {
                 prefs.edit().putString("ring_uri", uri.toString()).putBoolean("ring_is_system", true).apply()
-                status.text = "System alarm ring selected"
+                val title = try { RingtoneManager.getRingtone(this, uri)?.getTitle(this) } catch (_: Exception) { null }
+                status.text = "System sound selected: " + (title ?: "Alarm sound")
             } else {
-                prefs.edit().remove("ring_uri").apply()
+                prefs.edit().remove("ring_uri").putBoolean("ring_is_system", true).apply()
                 status.text = "Phone's default alarm sound selected"
             }
         }
