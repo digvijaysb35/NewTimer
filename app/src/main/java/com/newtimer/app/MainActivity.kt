@@ -218,7 +218,7 @@ class MainActivity : Activity() {
         TextView(this).apply {
             this.text = text
             textSize = 13f
-            typeface = Typeface.create("sans-serif-medium", Typeface.MEDIUM)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             setTextColor(textColor)
             gravity = Gravity.CENTER
             minHeight = dp(48)
