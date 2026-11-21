@@ -3,6 +3,7 @@ package com.newtimer.app
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -348,7 +349,7 @@ class MainActivity : Activity() {
                 try {
                     contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (_: Exception) {}
-                prefs.edit().putString("ring_uri", uri.toString()).apply()
+                prefs.edit().putString("ring_uri", uri.toString()).putBoolean("ring_is_system", false).apply()
                 status.text = "Custom sound selected"
             }
         }
@@ -356,7 +357,7 @@ class MainActivity : Activity() {
             @Suppress("DEPRECATION")
             val uri: Uri? = data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
             if (uri != null) {
-                prefs.edit().putString("ring_uri", uri.toString()).apply()
+                prefs.edit().putString("ring_uri", uri.toString()).putBoolean("ring_is_system", true).apply()
                 status.text = "System alarm ring selected"
             } else {
                 prefs.edit().remove("ring_uri").apply()
