@@ -40,7 +40,8 @@ class TimerService : Service() {
                 endAt = System.currentTimeMillis() + seconds * 1000L
                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
                 wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NewTimer:Countdown").apply {
-                    acquire((seconds + 120L) * 1000L)
+                    val ringSeconds = getSharedPreferences("timer", MODE_PRIVATE).getInt("ring_duration", 60).coerceIn(5, 600)
+                    acquire((seconds + ringSeconds + 120L) * 1000L)
                 }
                 startForeground(NOTIFICATION_ID, notification("Timer running"))
                 handler.removeCallbacks(tick)
