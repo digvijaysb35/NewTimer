@@ -109,9 +109,6 @@ class TimerService : Service() {
         const val ACTION_STOP = "com.newtimer.STOP"
         const val EXTRA_SECONDS = "seconds"
         const val NOTIFICATION_ID = 7
-        fun stopAlarm() {
-            // Player is owned by the service instance; ACTION_STOP handles the normal stop path.
-        }
         fun stopFromVolumeKey(context: Context) {
             context.startService(Intent(context, TimerService::class.java).setAction(ACTION_STOP))
         }
