@@ -16,6 +16,7 @@ class TimerService : Service() {
     private var endAt = 0L
     private var player: MediaPlayer? = null
     private var ringStopAt = 0L
+    private var wakeLock: PowerManager.WakeLock? = null
     private val tick = object : Runnable {
         override fun run() {
             val remaining = endAt - System.currentTimeMillis()
@@ -37,6 +38,10 @@ class TimerService : Service() {
                 val seconds = max(1, intent.getLongExtra(EXTRA_SECONDS, 60L))
                 stopAlarm()
                 endAt = System.currentTimeMillis() + seconds * 1000L
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NewTimer:Countdown").apply {
+                    acquire((seconds + 120L) * 1000L)
+                }
                 startForeground(NOTIFICATION_ID, notification("Timer running"))
                 handler.removeCallbacks(tick)
                 handler.post(tick)
@@ -120,5 +125,7 @@ class TimerService : Service() {
         try { player?.stop() } catch (_: Exception) {}
         try { player?.release() } catch (_: Exception) {}
         player = null
+        try { if (wakeLock?.isHeld == true) wakeLock?.release() } catch (_: Exception) {}
+        wakeLock = null
     }
 }
