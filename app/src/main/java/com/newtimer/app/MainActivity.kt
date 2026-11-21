@@ -198,7 +198,6 @@ class MainActivity : Activity() {
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         gravity = Gravity.CENTER
         inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        singleLine = true
         imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
         background = rounded(panel, 14)
         setPadding(dp(4), dp(8), dp(4), dp(8))
