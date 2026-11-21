@@ -299,8 +299,7 @@ class MainActivity : Activity() {
     }
 
     private fun stopTimer() {
-        val intent = Intent(this, TimerService::class.java).setAction(TimerService.ACTION_STOP)
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        stopService(Intent(this, TimerService::class.java))
         status.text = "Timer stopped"
     }
 
