@@ -385,7 +385,7 @@ class MainActivity : Activity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             if (event.action == KeyEvent.ACTION_DOWN) stopTimer()
-            return true
+            return false
         }
         return super.dispatchKeyEvent(event)
     }
