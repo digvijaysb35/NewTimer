@@ -110,7 +110,7 @@ class TimerService : Service() {
         const val EXTRA_SECONDS = "seconds"
         const val NOTIFICATION_ID = 7
         fun stopFromVolumeKey(context: Context) {
-            context.startService(Intent(context, TimerService::class.java).setAction(ACTION_STOP))
+            context.stopService(Intent(context, TimerService::class.java))
         }
         private fun format(ms: Long): String {
             val sec = max(0, ms / 1000)
