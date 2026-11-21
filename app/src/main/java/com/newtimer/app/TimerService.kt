@@ -142,8 +142,8 @@ class TimerService : Service() {
                     importance
                 ).apply {
                     description = if (silent) "Silent ongoing countdown status" else "Countdown status notifications"
-                    setSound(null, null)
-                    enableVibration(false)
+                    if (silent) setSound(null, null)
+                    enableVibration(!silent)
                     setShowBadge(false)
                 }
                 nm.createNotificationChannel(channel)
