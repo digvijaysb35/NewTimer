@@ -10,7 +10,7 @@ class VolumeKeyService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             if (event.action == KeyEvent.ACTION_DOWN) TimerService.stopFromVolumeKey(this)
-            return true
+            return false
         }
         return super.onKeyEvent(event)
     }
