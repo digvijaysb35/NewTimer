@@ -165,9 +165,22 @@ class MainActivity : Activity() {
         root.addView(spinner, fullWidth().apply { height = dp(52) })
 
         section("RING SOUND")
-        root.addView(action("USE SYSTEM ALARM SOUND", panel, Color.WHITE) {
+        root.addView(action("CHOOSE SYSTEM ALARM RING", panel, Color.WHITE) {
+            val picker = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose system alarm sound")
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                    prefs.getString("ring_uri", null)?.let(Uri::parse)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+            }
+            @Suppress("DEPRECATION") startActivityForResult(picker, 24)
+        }, fullWidth())
+        root.addView(action("USE PHONE'S DEFAULT ALARM SOUND", panel, Color.WHITE) {
             prefs.edit().remove("ring_uri").apply()
-            status.text = "System alarm sound selected"
+            status.text = "Phone's default alarm sound selected"
         }, fullWidth())
         root.addView(action("CHOOSE CUSTOM SOUND FILE", panel, Color.WHITE) {
             val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -177,6 +190,30 @@ class MainActivity : Activity() {
             }
             startActivityForResult(picker, 23)
         }, fullWidth())
+
+        section("APP NOTIFICATIONS")
+        val silentSwitch = Switch(this).apply {
+            text = "Mute app notification and sound"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            isChecked = prefs.getBoolean("silent_notifications", false)
+            setPadding(0, dp(6), 0, dp(6))
+            setOnCheckedChangeListener { _, checked ->
+                prefs.edit().putBoolean("silent_notifications", checked).apply()
+                status.text = if (checked) {
+                    "Timer notification will be silent next time"
+                } else {
+                    "Timer notification sound enabled next time"
+                }
+            }
+        }
+        root.addView(silentSwitch)
+        root.addView(TextView(this).apply {
+            text = "Android requires an ongoing notification while the timer runs. This option keeps it visible but mutes its sound and vibration."
+            textSize = 12f
+            setTextColor(Color.GRAY)
+            setPadding(0, 0, 0, dp(8))
+        })
 
         section("VOLUME-KEY STOP")
         root.addView(action("OPEN ACCESSIBILITY SETTINGS", panel, Color.WHITE) {
@@ -313,6 +350,17 @@ class MainActivity : Activity() {
                 } catch (_: Exception) {}
                 prefs.edit().putString("ring_uri", uri.toString()).apply()
                 status.text = "Custom sound selected"
+            }
+        }
+        if (requestCode == 24 && resultCode == RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val uri: Uri? = data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            if (uri != null) {
+                prefs.edit().putString("ring_uri", uri.toString()).apply()
+                status.text = "System alarm ring selected"
+            } else {
+                prefs.edit().remove("ring_uri").apply()
+                status.text = "Phone's default alarm sound selected"
             }
         }
     }
